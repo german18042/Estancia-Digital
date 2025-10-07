@@ -60,9 +60,9 @@ export async function PUT(
     // Si se actualizan datos de confirmación, recalcular
     if (body.fechaConfirmacion || body.diasGestacionConfirmados || body.fechaServicio) {
       let fechaServicioCalculada: Date | undefined;
-      let fechaProbableParto: Date;
-      let diasGestacionActual: number;
-      let trimestreActual: number;
+      let fechaProbableParto: Date | undefined;
+      let diasGestacionActual: number = 0;
+      let trimestreActual: number = 1;
       const hoy = new Date();
       
       // Prioridad 1: Si hay días confirmados, usar esos como base

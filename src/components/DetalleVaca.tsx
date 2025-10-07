@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 interface Vaca {
   _id: string;
@@ -52,6 +51,7 @@ const DetalleVaca: React.FC<DetalleVacaProps> = ({ vacaId, onCerrar }) => {
 
   useEffect(() => {
     cargarDatosCompletos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vacaId]);
 
   const cargarDatosCompletos = async () => {

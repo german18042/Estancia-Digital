@@ -153,18 +153,6 @@ const GestionGestacionApp: React.FC = () => {
     }
   };
 
-  const cargarEstadisticas = async () => {
-    try {
-      const response = await fetch('/api/gestacion/estadisticas');
-      if (response.ok) {
-        const data = await response.json();
-        setEstadisticas(data);
-      }
-    } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
-    }
-  };
-
   const handleEditarGestacion = (gestacion: Gestacion) => {
     setGestacionEditando(gestacion);
     setMostrarFormulario(true);

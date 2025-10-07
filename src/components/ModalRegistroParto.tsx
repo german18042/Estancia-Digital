@@ -19,7 +19,7 @@ interface ModalRegistroPartoProps {
   onRegistrar: (datos: {
     resultado: 'parto' | 'aborto';
     fechaPartoReal?: Date;
-    tipoParto?: 'natural' | 'cesarea' | 'inducido';
+    tipoParto?: 'natural' | 'cesarea' | 'inducido' | 'asistido';
     complicacionesParto?: string;
     crias?: Cria[];
   }) => Promise<void>;
