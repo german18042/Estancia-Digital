@@ -37,7 +37,7 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
   isLoading = false
 }) => {
   const [filtro, setFiltro] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
+  const [filtroDiasRestantes, setFiltroDiasRestantes] = useState('');
   const [gestacionesConCalculos, setGestacionesConCalculos] = useState<Gestacion[]>([]);
 
   // Función para recalcular días de gestación y trimestre
@@ -98,17 +98,37 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
       );
     }
 
-    if (filtroEstado !== '') {
-      filtradas = filtradas.filter(gestacion => gestacion.estado === filtroEstado);
+
+    if (filtroDiasRestantes !== '') {
+      filtradas = filtradas.filter(gestacion => {
+        const diasRestantes = calcularDiasRestantes(gestacion);
+        
+        switch (filtroDiasRestantes) {
+          case 'critico': // 0-14 días
+            return diasRestantes >= 0 && diasRestantes <= 14;
+          case 'cercano': // 15-30 días
+            return diasRestantes >= 15 && diasRestantes <= 30;
+          case 'proximo': // 31-60 días
+            return diasRestantes >= 31 && diasRestantes <= 60;
+          case 'lejano': // 61+ días
+            return diasRestantes > 60;
+          case 'vencido': // Vencido
+            return diasRestantes < 0;
+          default:
+            return true;
+        }
+      });
     }
 
     setGestacionesFiltradas(filtradas);
-  }, [filtro, filtroEstado, gestacionesConCalculos]);
+  }, [filtro, filtroDiasRestantes, gestacionesConCalculos]);
 
-  const calcularDiasRestantes = (fechaProbableParto: string) => {
-    const fecha = new Date(fechaProbableParto);
-    const hoy = new Date();
-    const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+  const calcularDiasRestantes = (gestacion: Gestacion) => {
+    // Usar directamente los días confirmados que se muestran en la tabla
+    const diasMostrados = gestacion.diasGestacionConfirmados || gestacion.diasGestacionActual || 0;
+    
+    // Calcular días restantes (283 días totales - días confirmados/mostrados)
+    const diasRestantes = 283 - diasMostrados;
     return diasRestantes;
   };
 
@@ -184,16 +204,16 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
           </div>
           <div className="md:w-48">
             <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
+              value={filtroDiasRestantes}
+              onChange={(e) => setFiltroDiasRestantes(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
             >
-              <option value="">Todos los estados</option>
-              <option value="en_gestacion">En Gestación</option>
-              <option value="parto_exitoso">Parto Exitoso</option>
-              <option value="aborto">Aborto</option>
-              <option value="parto_dificil">Parto Difícil</option>
-              <option value="complicaciones">Complicaciones</option>
+              <option value="">Todos los tiempos</option>
+              <option value="critico">🔴 Crítico (0-14 días)</option>
+              <option value="cercano">🟡 Cercano (15-30 días)</option>
+              <option value="proximo">🟢 Próximo (31-60 días)</option>
+              <option value="lejano">⚪ Lejano (60+ días)</option>
+              <option value="vencido">Vencido</option>
             </select>
           </div>
         </div>
@@ -233,12 +253,12 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
             {gestacionesFiltradas.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                  {filtro || filtroEstado ? 'No se encontraron gestaciones con ese criterio' : 'No hay gestaciones registradas'}
+                  {filtro ? 'No se encontraron gestaciones con ese criterio' : 'No hay gestaciones registradas'}
                 </td>
               </tr>
             ) : (
               gestacionesFiltradas.map((gestacion) => {
-                const diasRestantes = calcularDiasRestantes(gestacion.fechaProbableParto);
+                const diasRestantes = calcularDiasRestantes(gestacion);
                 const esCritica = diasRestantes <= 14 && diasRestantes >= 0;
                 const esCercana = diasRestantes <= 30 && diasRestantes >= 0;
                 
@@ -263,8 +283,8 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {gestacion.diasGestacionActual || 0} días
+                      <div className="text-sm text-gray-900 font-medium">
+                        {gestacion.diasGestacionConfirmados || gestacion.diasGestacionActual || 0} días
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -294,15 +314,17 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-col space-y-1">
-                        {/* Botón de registrar parto si está cerca o pasada la fecha */}
-                        {diasRestantes <= 7 && (
-                          <button
-                            onClick={() => onRegistrarParto(gestacion)}
-                            className="text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-xs font-semibold"
-                          >
-                            📋 Registrar Parto
-                          </button>
-                        )}
+                        {/* Botón de registrar parto - siempre visible */}
+                        <button
+                          onClick={() => onRegistrarParto(gestacion)}
+                          className="text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-xs font-semibold"
+                          title={diasRestantes <= 7 ? "Fecha de parto próxima" : "Registrar parto o aborto"}
+                        >
+                          <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Registrar Parto
+                        </button>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => onEditar(gestacion)}

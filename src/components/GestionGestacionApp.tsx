@@ -266,6 +266,36 @@ const GestionGestacionApp: React.FC = () => {
             throw new Error(`Error al registrar cría ${cria.numeroIdentificacion}: ${errorData.error || 'Error desconocido'}`);
           }
         }
+
+        // Actualizar el estado reproductivo de la vaca madre a "lactante"
+        try {
+          // Primero obtener la vaca madre
+          const responseVacaMadre = await fetch(`/api/vacas/buscar?numeroIdentificacion=${gestacionParaParto.numeroIdentificacionVaca}`);
+          if (responseVacaMadre.ok) {
+            const vacasMadre = await responseVacaMadre.json();
+            if (vacasMadre.vacas && vacasMadre.vacas.length > 0) {
+              const vacaMadre = vacasMadre.vacas[0];
+              
+              // Actualizar el estado reproductivo a "lactante"
+              const responseUpdateVaca = await fetch(`/api/vacas/${vacaMadre._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  ...vacaMadre,
+                  estadoReproductivo: 'lactante'
+                }),
+              });
+
+              if (!responseUpdateVaca.ok) {
+                console.warn('No se pudo actualizar el estado reproductivo de la vaca madre');
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error al actualizar estado reproductivo de la vaca madre:', error);
+        }
       } else {
         datosActualizacion.estado = 'aborto';
       }
@@ -346,13 +376,19 @@ const GestionGestacionApp: React.FC = () => {
                 href="/"
                 className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-center text-sm sm:text-base"
               >
-                📋 Registro de Vacas
+                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Registro de Vacas
               </Link>
               <Link
                 href="/trazabilidad"
                 className="bg-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-center text-sm sm:text-base"
               >
-                📊 Trazabilidad
+                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Trazabilidad
               </Link>
             </div>
           </div>

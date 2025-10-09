@@ -18,6 +18,9 @@ interface Evento {
   descripcion: string;
   color: string;
   icono: string;
+  observaciones?: string | null;
+  complicaciones?: string | null;
+  detallesAdicionales?: any;
 }
 
 interface Estadisticas {
@@ -50,6 +53,8 @@ const TrazabilidadVaca: React.FC<TrazabilidadVacaProps> = ({ vacaId, onVolver })
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>('');
+  const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
+  const [mostrarDetalles, setMostrarDetalles] = useState(false);
 
   useEffect(() => {
     cargarTrazabilidad();
@@ -109,6 +114,16 @@ const TrazabilidadVaca: React.FC<TrazabilidadVacaProps> = ({ vacaId, onVolver })
       </div>
     );
   }
+
+  const handleVerDetalles = (evento: Evento) => {
+    setEventoSeleccionado(evento);
+    setMostrarDetalles(true);
+  };
+
+  const cerrarDetalles = () => {
+    setMostrarDetalles(false);
+    setEventoSeleccionado(null);
+  };
 
   if (error) {
     return (
@@ -282,7 +297,8 @@ const TrazabilidadVaca: React.FC<TrazabilidadVacaProps> = ({ vacaId, onVolver })
                   <div className="absolute left-6 top-12 w-0.5 h-8 bg-gray-300"></div>
                 )}
                 
-                <div className={`flex items-start p-4 rounded-lg border-l-4 ${getColorClasses(evento.color)}`}>
+                <div className={`flex items-start p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow duration-200 ${getColorClasses(evento.color)}`}
+                     onClick={() => handleVerDetalles(evento)}>
                   <div className="flex-shrink-0 mr-4">
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-xl">
                       {evento.icono}
@@ -297,6 +313,19 @@ const TrazabilidadVaca: React.FC<TrazabilidadVacaProps> = ({ vacaId, onVolver })
                         <p className="text-sm text-gray-600 mt-1">
                           {evento.descripcion}
                         </p>
+                        <button 
+                          className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleVerDetalles(evento);
+                          }}
+                        >
+                          <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Ver detalles completos
+                        </button>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-gray-900">
@@ -314,6 +343,259 @@ const TrazabilidadVaca: React.FC<TrazabilidadVacaProps> = ({ vacaId, onVolver })
           </div>
         )}
       </div>
+
+      {/* Modal de detalles del evento */}
+      {mostrarDetalles && eventoSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-2xl mr-4">
+                    {eventoSeleccionado.icono}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {eventoSeleccionado.titulo}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {getTipoLabel(eventoSeleccionado.tipo)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={cerrarDetalles}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">📅 Fecha del Evento</h4>
+                  <p className="text-gray-700">
+                    {new Date(eventoSeleccionado.fecha).toLocaleDateString('es-ES', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">📝 Descripción</h4>
+                  <p className="text-gray-700">{eventoSeleccionado.descripcion}</p>
+                </div>
+
+                {eventoSeleccionado.observaciones && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Observaciones
+                    </h4>
+                    <p className="text-blue-800">{eventoSeleccionado.observaciones}</p>
+                  </div>
+                )}
+
+                {eventoSeleccionado.complicaciones && (
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      Complicaciones
+                    </h4>
+                    <p className="text-red-800">{eventoSeleccionado.complicaciones}</p>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
+                    Tipo de Evento
+                  </h4>
+                  <p className="text-gray-700">{getTipoLabel(eventoSeleccionado.tipo)}</p>
+                </div>
+
+                {/* Información adicional según el tipo de evento */}
+                {eventoSeleccionado.tipo === 'servicio' && eventoSeleccionado.detallesAdicionales && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">🐂 Información del Servicio</h4>
+                    <div className="space-y-2 text-blue-800">
+                      {eventoSeleccionado.detallesAdicionales.toroPadre && (
+                        <p><strong>Toro Padre:</strong> {eventoSeleccionado.detallesAdicionales.toroPadre}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.semenToro && (
+                        <p><strong>Semen Toro:</strong> {eventoSeleccionado.detallesAdicionales.semenToro}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.diasGestacionConfirmados && (
+                        <p><strong>Días de Gestación Confirmados:</strong> {eventoSeleccionado.detallesAdicionales.diasGestacionConfirmados} días</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.pesoInicial && (
+                        <p><strong>Peso Inicial:</strong> {eventoSeleccionado.detallesAdicionales.pesoInicial} kg</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.fechaRegistro && (
+                        <p><strong>Fecha de Registro:</strong> {new Date(eventoSeleccionado.detallesAdicionales.fechaRegistro).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                    
+                    {/* Cuidados especiales */}
+                    {(eventoSeleccionado.detallesAdicionales.dietaEspecial || 
+                      eventoSeleccionado.detallesAdicionales.medicamentos?.length > 0 || 
+                      eventoSeleccionado.detallesAdicionales.restricciones?.length > 0 ||
+                      eventoSeleccionado.detallesAdicionales.ejercicioRecomendado) && (
+                      <div className="mt-4 border-t border-blue-200 pt-3">
+                        <h5 className="font-semibold text-blue-900 mb-2">🩺 Cuidados Especiales</h5>
+                        {eventoSeleccionado.detallesAdicionales.dietaEspecial && (
+                          <p><strong>Dieta Especial:</strong> {eventoSeleccionado.detallesAdicionales.dietaEspecial}</p>
+                        )}
+                        {eventoSeleccionado.detallesAdicionales.medicamentos?.length > 0 && (
+                          <div>
+                            <p><strong>Medicamentos:</strong></p>
+                            <ul className="ml-4 list-disc">
+                              {eventoSeleccionado.detallesAdicionales.medicamentos.map((med: string, index: number) => (
+                                <li key={index}>{med}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {eventoSeleccionado.detallesAdicionales.restricciones?.length > 0 && (
+                          <div>
+                            <p><strong>Restricciones:</strong></p>
+                            <ul className="ml-4 list-disc">
+                              {eventoSeleccionado.detallesAdicionales.restricciones.map((rest: string, index: number) => (
+                                <li key={index}>{rest}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {eventoSeleccionado.detallesAdicionales.ejercicioRecomendado && (
+                          <p><strong>Ejercicio Recomendado:</strong> {eventoSeleccionado.detallesAdicionales.ejercicioRecomendado}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {eventoSeleccionado.tipo === 'confirmacion' && eventoSeleccionado.detallesAdicionales && (
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-green-900 mb-2">✅ Confirmación de Gestación</h4>
+                    <div className="space-y-2 text-green-800">
+                      {eventoSeleccionado.detallesAdicionales.metodoConfirmacion && (
+                        <p><strong>Método:</strong> {eventoSeleccionado.detallesAdicionales.metodoConfirmacion}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.confirmadoPor && (
+                        <p><strong>Confirmado por:</strong> {eventoSeleccionado.detallesAdicionales.confirmadoPor}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.diasGestacionConfirmados && (
+                        <p><strong>Días de Gestación:</strong> {eventoSeleccionado.detallesAdicionales.diasGestacionConfirmados} días</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.pesoActual && (
+                        <p><strong>Peso Actual:</strong> {eventoSeleccionado.detallesAdicionales.pesoActual} kg</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.gananciaPeso && (
+                        <p><strong>Ganancia de Peso:</strong> {eventoSeleccionado.detallesAdicionales.gananciaPeso} kg</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.trimestreActual && (
+                        <p><strong>Trimestre Actual:</strong> {eventoSeleccionado.detallesAdicionales.trimestreActual}/3</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {eventoSeleccionado.tipo === 'parto_real' && eventoSeleccionado.detallesAdicionales && (
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-purple-900 mb-2">👶 Información del Parto</h4>
+                    <div className="space-y-2 text-purple-800">
+                      {eventoSeleccionado.detallesAdicionales.tipoParto && (
+                        <p><strong>Tipo de Parto:</strong> {eventoSeleccionado.detallesAdicionales.tipoParto}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.asistenciaVeterinaria !== undefined && (
+                        <p><strong>Asistencia Veterinaria:</strong> {eventoSeleccionado.detallesAdicionales.asistenciaVeterinaria ? 'Sí' : 'No'}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.pesoCria && (
+                        <p><strong>Peso de la Cría:</strong> {eventoSeleccionado.detallesAdicionales.pesoCria} kg</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.sexoCria && (
+                        <p><strong>Sexo de la Cría:</strong> {eventoSeleccionado.detallesAdicionales.sexoCria}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.estadoCria && (
+                        <p><strong>Estado de la Cría:</strong> {eventoSeleccionado.detallesAdicionales.estadoCria}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.observacionesParto && (
+                        <p><strong>Observaciones del Parto:</strong> {eventoSeleccionado.detallesAdicionales.observacionesParto}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.fechaActualizacion && (
+                        <p><strong>Última Actualización:</strong> {new Date(eventoSeleccionado.detallesAdicionales.fechaActualizacion).toLocaleDateString()}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.crias && eventoSeleccionado.detallesAdicionales.crias.length > 0 && (
+                        <div>
+                          <p><strong>Crías Nacidas:</strong></p>
+                          <ul className="ml-4 list-disc">
+                            {eventoSeleccionado.detallesAdicionales.crias.map((cria: any, index: number) => (
+                              <li key={index}>
+                                {cria.numeroIdentificacion} - {cria.sexo} - {cria.pesoNacimiento}kg
+                                {cria.observaciones && ` (${cria.observaciones})`}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {eventoSeleccionado.tipo === 'seguimiento' && eventoSeleccionado.detallesAdicionales && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Detalles del Seguimiento
+                    </h4>
+                    <div className="space-y-2 text-gray-700">
+                      {eventoSeleccionado.detallesAdicionales.peso && (
+                        <p><strong>Peso:</strong> {eventoSeleccionado.detallesAdicionales.peso} kg</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.condicionCorporal && (
+                        <p><strong>Condición Corporal:</strong> {eventoSeleccionado.detallesAdicionales.condicionCorporal}/5</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.veterinario && (
+                        <p><strong>Veterinario:</strong> {eventoSeleccionado.detallesAdicionales.veterinario}</p>
+                      )}
+                      {eventoSeleccionado.detallesAdicionales.examenes && eventoSeleccionado.detallesAdicionales.examenes.length > 0 && (
+                        <div>
+                          <p><strong>Exámenes Realizados:</strong></p>
+                          <ul className="ml-4 list-disc">
+                            {eventoSeleccionado.detallesAdicionales.examenes.map((examen: string, index: number) => (
+                              <li key={index}>{examen}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={cerrarDetalles}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

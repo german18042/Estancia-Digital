@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import FormularioRegistroVaca from './FormularioRegistroVaca';
 import ListaVacas from './ListaVacas';
 import ModalCambiarUbicacion from './ModalCambiarUbicacion';
 import DetalleVaca from './DetalleVaca';
+import ModalSalidaAnimal from './ModalSalidaAnimal';
 
 interface Vaca {
   _id: string;
@@ -31,6 +31,7 @@ const RegistroVacasApp: React.FC = () => {
   const [vacaEditando, setVacaEditando] = useState<Vaca | null>(null);
   const [vacaParaUbicar, setVacaParaUbicar] = useState<Vaca | null>(null);
   const [vacaParaDetalles, setVacaParaDetalles] = useState<Vaca | null>(null);
+  const [vacaParaSalida, setVacaParaSalida] = useState<Vaca | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -127,6 +128,66 @@ const RegistroVacasApp: React.FC = () => {
 
   const handleVerDetalles = (vaca: Vaca) => {
     setVacaParaDetalles(vaca);
+  };
+
+  const handleMarcarMuerte = (vaca: Vaca) => {
+    setVacaParaSalida(vaca);
+  };
+
+  const handleConfirmarSalida = async (datos: {
+    tipo: 'vendido' | 'fallecido';
+    fecha: Date;
+    motivo?: string;
+    observaciones?: string;
+    comprador?: string;
+    precio?: number;
+    metodoPago?: string;
+    causaMuerte?: string;
+    diagnostico?: string;
+  }) => {
+    if (!vacaParaSalida) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/vacas/${vacaParaSalida._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...vacaParaSalida,
+          activa: false,
+          estadoReproductivo: 'no_apta',
+          motivoInactivacion: datos.tipo,
+          fechaSalida: datos.fecha,
+          comprador: datos.comprador,
+          precioVenta: datos.precio,
+          metodoPago: datos.metodoPago,
+          causaMuerte: datos.causaMuerte,
+          diagnosticoMuerte: datos.diagnostico,
+          observacionesSalida: datos.observaciones
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al registrar ${datos.tipo === 'vendido' ? 'venta' : 'fallecimiento'}`);
+      }
+
+      setSuccessMessage(
+        datos.tipo === 'vendido' 
+          ? 'Venta registrada exitosamente' 
+          : 'Fallecimiento registrado exitosamente'
+      );
+      setVacaParaSalida(null);
+      cargarVacas();
+    } catch (error) {
+      console.error('Error al registrar salida:', error);
+      setError(error instanceof Error ? error.message : 'Error al registrar la salida del animal');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleConfirmarCambioUbicacion = async (datos: {
@@ -243,26 +304,6 @@ const RegistroVacasApp: React.FC = () => {
                 Gestiona el inventario completo de tu ganado con información detallada
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <Link
-                href="/gestacion"
-                className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors text-center text-sm sm:text-base"
-              >
-                🐄 Gestión de Gestación
-              </Link>
-              <Link
-                href="/trazabilidad"
-                className="bg-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors text-center text-sm sm:text-base"
-              >
-                📊 Trazabilidad
-              </Link>
-              <Link
-                href="/ubicaciones"
-                className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-center text-sm sm:text-base"
-              >
-                📍 Ubicaciones
-              </Link>
-            </div>
           </div>
         </div>
 
@@ -308,9 +349,9 @@ const RegistroVacasApp: React.FC = () => {
             <ListaVacas
               vacas={vacas}
               onEditar={handleEditarVaca}
-              onEliminar={handleEliminarVaca}
               onCambiarUbicacion={handleCambiarUbicacion}
               onVerDetalles={handleVerDetalles}
+              onMarcarMuerte={handleMarcarMuerte}
               isLoading={isLoading}
             />
           </div>
@@ -342,6 +383,15 @@ const RegistroVacasApp: React.FC = () => {
         <DetalleVaca
           vacaId={vacaParaDetalles._id}
           onCerrar={() => setVacaParaDetalles(null)}
+        />
+      )}
+
+      {/* Modal de salida del animal */}
+      {vacaParaSalida && (
+        <ModalSalidaAnimal
+          vaca={vacaParaSalida}
+          onClose={() => setVacaParaSalida(null)}
+          onConfirmar={handleConfirmarSalida}
         />
       )}
     </div>

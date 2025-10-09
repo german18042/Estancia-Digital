@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useRequireAuth } from '@/hooks/useAuth';
-import Navigation from './Navigation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,7 +25,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
       <main>
         {children}
       </main>

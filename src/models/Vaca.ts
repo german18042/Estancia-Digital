@@ -78,6 +78,18 @@ export interface IVaca extends Document {
   fechaRegistro: Date;
   fechaActualizacion: Date;
   activa: boolean;
+  
+  // Datos de inactivación
+  motivoInactivacion?: 'vendido' | 'fallecido';
+  fechaSalida?: Date;
+  // Venta
+  comprador?: string;
+  precioVenta?: number;
+  metodoPago?: string;
+  // Muerte
+  causaMuerte?: string;
+  diagnosticoMuerte?: string;
+  observacionesSalida?: string;
 }
 
 // Esquema de MongoDB
@@ -247,7 +259,25 @@ const VacaSchema = new Schema<IVaca>({
   activa: {
     type: Boolean,
     default: true
-  }
+  },
+  
+  // Datos de inactivación
+  motivoInactivacion: {
+    type: String,
+    enum: ['vendido', 'fallecido']
+  },
+  fechaSalida: Date,
+  // Venta
+  comprador: String,
+  precioVenta: {
+    type: Number,
+    min: 0
+  },
+  metodoPago: String,
+  // Muerte
+  causaMuerte: String,
+  diagnosticoMuerte: String,
+  observacionesSalida: String
 }, {
   timestamps: true
 });

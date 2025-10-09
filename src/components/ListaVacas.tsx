@@ -22,18 +22,18 @@ interface Vaca {
 interface ListaVacasProps {
   vacas: Vaca[];
   onEditar: (vaca: Vaca) => void;
-  onEliminar: (id: string) => void;
   onCambiarUbicacion: (vaca: Vaca) => void;
   onVerDetalles: (vaca: Vaca) => void;
+  onMarcarMuerte: (vaca: Vaca) => void;
   isLoading?: boolean;
 }
 
 const ListaVacas: React.FC<ListaVacasProps> = ({
   vacas,
   onEditar,
-  onEliminar,
   onCambiarUbicacion,
   onVerDetalles,
+  onMarcarMuerte,
   isLoading = false
 }) => {
   const [filtro, setFiltro] = useState('');
@@ -112,7 +112,7 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
             placeholder="Buscar por número, nombre o raza..."
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base text-black"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,35 +201,56 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
                     <div className="text-sm text-gray-900">{vaca.ubicacionActual}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col space-y-1">
+                    <div className="flex flex-col space-y-2">
+                      {/* Botón principal - Ver Detalles */}
                       <button
                         onClick={() => onVerDetalles(vaca)}
-                        className="text-indigo-600 hover:text-indigo-900 text-xs font-semibold"
-                        title="Ver detalles completos"
+                        className="w-full px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors duration-200"
+                        title="Ver detalles completos y genealogía"
                       >
-                        👁️ Ver Detalles
+                        <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Ver Detalles
                       </button>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => onCambiarUbicacion(vaca)}
-                          className="text-purple-600 hover:text-purple-900 text-xs"
-                          title="Cambiar ubicación"
-                        >
-                          📍 Ubicar
-                        </button>
+                      
+                      {/* Botones secundarios */}
+                      <div className="flex space-x-1">
                         <button
                           onClick={() => onEditar(vaca)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="flex-1 px-2 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors duration-200"
+                          title="Editar información"
                         >
+                          <svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                           Editar
                         </button>
                         <button
-                          onClick={() => onEliminar(vaca._id)}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => onCambiarUbicacion(vaca)}
+                          className="flex-1 px-2 py-1.5 text-xs font-medium text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors duration-200"
+                          title="Cambiar ubicación"
                         >
-                          Eliminar
+                          <svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Ubicar
                         </button>
                       </div>
+                      
+                      {/* Botón de salida */}
+                      <button
+                        onClick={() => onMarcarMuerte(vaca)}
+                        className="w-full px-2 py-1.5 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md transition-colors duration-200"
+                        title="Registrar salida del animal"
+                      >
+                        <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Registrar Salida
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -277,34 +298,56 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* Botón principal - Ver Detalles */}
                   <button
                     onClick={() => onVerDetalles(vaca)}
-                    className="w-full text-white bg-indigo-600 hover:bg-indigo-700 py-2 rounded text-sm font-semibold"
+                    className="w-full px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors duration-200"
+                    title="Ver detalles completos y genealogía"
                   >
-                    👁️ Ver Detalles Completos
+                    <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Ver Detalles Completos
                   </button>
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => onCambiarUbicacion(vaca)}
-                      className="text-purple-600 hover:text-purple-900 text-sm font-medium focus:outline-none focus:underline"
-                      title="Cambiar ubicación"
-                    >
-                      📍 Ubicar
-                    </button>
+                  
+                  {/* Botones secundarios */}
+                  <div className="flex space-x-2">
                     <button
                       onClick={() => onEditar(vaca)}
-                      className="text-blue-600 hover:text-blue-900 text-sm font-medium focus:outline-none focus:underline"
+                      className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors duration-200"
+                      title="Editar información"
                     >
+                      <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                       Editar
                     </button>
                     <button
-                      onClick={() => onEliminar(vaca._id)}
-                      className="text-red-600 hover:text-red-900 text-sm font-medium focus:outline-none focus:underline"
+                      onClick={() => onCambiarUbicacion(vaca)}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors duration-200"
+                      title="Cambiar ubicación"
                     >
-                      Eliminar
+                      <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Ubicar
                     </button>
                   </div>
+                  
+                  {/* Botón de salida */}
+                  <button
+                    onClick={() => onMarcarMuerte(vaca)}
+                    className="w-full px-3 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md transition-colors duration-200"
+                    title="Registrar salida del animal"
+                  >
+                    <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Registrar Salida
+                  </button>
                 </div>
               </div>
             ))}

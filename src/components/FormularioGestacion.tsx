@@ -137,7 +137,7 @@ const FormularioGestacion: React.FC<FormularioGestacionProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convertir campos numéricos
+    // Convertir campos numéricos y manejar campos vacíos
     const datosParaEnviar = {
       ...formData,
       pesoInicial: formData.pesoInicial ? parseFloat(String(formData.pesoInicial)) : undefined,
@@ -145,6 +145,8 @@ const FormularioGestacion: React.FC<FormularioGestacionProps> = ({
       diasGestacionConfirmados: formData.diasGestacionConfirmados ? parseInt(String(formData.diasGestacionConfirmados)) : undefined,
       fechaServicio: formData.fechaServicio ? new Date(formData.fechaServicio) : undefined,
       fechaConfirmacion: formData.fechaConfirmacion ? new Date(formData.fechaConfirmacion) : undefined,
+      metodoConfirmacion: formData.metodoConfirmacion || undefined, // Convertir string vacío a undefined
+      confirmadoPor: formData.confirmadoPor || undefined, // Convertir string vacío a undefined
       medicamentos: formData.medicamentos 
         ? (typeof formData.medicamentos === 'string' 
           ? formData.medicamentos.split(',').map((m: string) => m.trim()) 
@@ -212,7 +214,28 @@ const FormularioGestacion: React.FC<FormularioGestacionProps> = ({
 
         {/* Información del Servicio */}
         <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">Información del Servicio</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-700">Información del Servicio</h3>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // Limpiar campos de confirmación para registrar solo servicio
+                  setFormData(prev => ({
+                    ...prev,
+                    fechaConfirmacion: '',
+                    diasGestacionConfirmados: '',
+                    metodoConfirmacion: '',
+                    confirmadoPor: ''
+                  }));
+                }}
+                className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors duration-200"
+                title="Limpiar campos de confirmación para registrar solo el servicio"
+              >
+                📝 Solo Servicio
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -277,7 +300,12 @@ const FormularioGestacion: React.FC<FormularioGestacionProps> = ({
 
         {/* Confirmación de Gestación */}
         <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">Confirmación de Gestación</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-700">Confirmación de Gestación</h3>
+            <span className="text-sm text-gray-500 bg-yellow-100 px-2 py-1 rounded">
+              Opcional - Puedes registrar solo el servicio
+            </span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -469,12 +497,48 @@ const FormularioGestacion: React.FC<FormularioGestacionProps> = ({
           >
             Cancelar
           </button>
+          
+          {/* Botón para registrar solo servicio */}
+          {!datosIniciales.vacaId && (
+            <button
+              type="button"
+              onClick={() => {
+                // Limpiar campos de confirmación y enviar solo servicio
+                const datosServicio = {
+                  ...formData,
+                  pesoInicial: formData.pesoInicial ? parseFloat(String(formData.pesoInicial)) : undefined,
+                  pesoActual: formData.pesoActual ? parseFloat(String(formData.pesoActual)) : undefined,
+                  diasGestacionConfirmados: undefined,
+                  fechaServicio: formData.fechaServicio ? new Date(formData.fechaServicio) : undefined,
+                  fechaConfirmacion: undefined,
+                  metodoConfirmacion: undefined, // Asegurar que sea undefined, no string vacío
+                  confirmadoPor: undefined, // Asegurar que sea undefined, no string vacío
+                  medicamentos: formData.medicamentos 
+                    ? (typeof formData.medicamentos === 'string' 
+                      ? formData.medicamentos.split(',').map((m: string) => m.trim())
+                      : formData.medicamentos)
+                    : [],
+                  restricciones: formData.restricciones 
+                    ? (typeof formData.restricciones === 'string' 
+                      ? formData.restricciones.split(',').map((r: string) => r.trim())
+                      : formData.restricciones)
+                    : []
+                };
+                onSubmit(datosServicio);
+              }}
+              disabled={isLoading || !formData.vacaId || !formData.tipoServicio}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Guardando...' : '📝 Solo Servicio'}
+            </button>
+          )}
+          
           <button
             type="submit"
             disabled={isLoading}
             className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Guardando...' : (datosIniciales.vacaId ? 'Actualizar' : 'Registrar')}
+            {isLoading ? 'Guardando...' : (datosIniciales.vacaId ? 'Actualizar' : 'Registrar Completo')}
           </button>
         </div>
       </form>

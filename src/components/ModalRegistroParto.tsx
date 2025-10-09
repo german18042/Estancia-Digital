@@ -136,7 +136,12 @@ const ModalRegistroParto: React.FC<ModalRegistroPartoProps> = ({
                   </svg>
                 </div>
                 <div className="ml-3 flex-1">
-                  <h3 className="text-base font-bold text-red-900 mb-2">⚠️ Error al Registrar</h3>
+                  <h3 className="text-base font-bold text-red-900 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Error al Registrar
+                  </h3>
                   <div className="text-sm text-red-800 font-medium bg-white px-3 py-2 rounded border border-red-300">
                     {errorExterno}
                   </div>
@@ -163,7 +168,10 @@ const ModalRegistroParto: React.FC<ModalRegistroPartoProps> = ({
                     : 'border-gray-300 bg-white text-gray-700'
                 } font-semibold hover:border-green-400`}
               >
-                🐄 Parto Exitoso
+                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Parto Exitoso
               </button>
               <button
                 type="button"
@@ -174,7 +182,10 @@ const ModalRegistroParto: React.FC<ModalRegistroPartoProps> = ({
                     : 'border-gray-300 bg-white text-gray-700'
                 } font-semibold hover:border-red-400`}
               >
-                ⚠️ Aborto
+                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Aborto
               </button>
             </div>
           </div>

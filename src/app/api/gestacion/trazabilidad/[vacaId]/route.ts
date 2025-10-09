@@ -62,7 +62,20 @@ export async function GET(
                  'Transferencia de Embrión'}`,
         descripcion: gestacion.toroPadre ? `Toro: ${gestacion.toroPadre}` : 'Sin información del toro',
         color: 'blue',
-        icono: '🐂'
+        icono: '🐂',
+        observaciones: gestacion.observaciones || null,
+        complicaciones: null,
+        detallesAdicionales: {
+          toroPadre: gestacion.toroPadre,
+          semenToro: gestacion.semenToro,
+          diasGestacionConfirmados: gestacion.diasGestacionConfirmados,
+          pesoInicial: gestacion.pesoInicial,
+          dietaEspecial: gestacion.dietaEspecial,
+          medicamentos: gestacion.medicamentos,
+          restricciones: gestacion.restricciones,
+          ejercicioRecomendado: gestacion.ejercicioRecomendado,
+          fechaRegistro: gestacion.fechaRegistro
+        }
       });
 
       // Evento: Confirmación de gestación
@@ -73,7 +86,17 @@ export async function GET(
           titulo: 'Confirmación de Gestación',
           descripcion: `Método: ${gestacion.metodoConfirmacion || 'No especificado'}`,
           color: 'green',
-          icono: '✅'
+          icono: '✅',
+          observaciones: gestacion.observaciones || null,
+          complicaciones: null,
+          detallesAdicionales: {
+            metodoConfirmacion: gestacion.metodoConfirmacion,
+            confirmadoPor: gestacion.confirmadoPor,
+            diasGestacionConfirmados: gestacion.diasGestacionConfirmados,
+            pesoActual: gestacion.pesoActual,
+            gananciaPeso: gestacion.gananciaPeso,
+            trimestreActual: gestacion.trimestreActual
+          }
         });
       }
 
@@ -95,9 +118,22 @@ export async function GET(
           fecha: gestacion.fechaRealParto,
           tipo: 'parto_real',
           titulo: 'Parto Real',
-          descripcion: `Tipo: ${gestacion.tipoParto || 'No especificado'}${gestacion.pesoCria ? `, Peso cría: ${gestacion.pesoCria}kg` : ''}`,
+          descripcion: `Tipo: ${gestacion.tipoParto || 'No especificado'}${gestacion.crias && gestacion.crias.length > 0 ? `, ${gestacion.crias.length} cría(s)` : ''}`,
           color: gestacion.estado === 'parto_exitoso' ? 'green' : 'red',
-          icono: gestacion.estado === 'parto_exitoso' ? '👶' : '⚠️'
+          icono: gestacion.estado === 'parto_exitoso' ? '👶' : '⚠️',
+          observaciones: gestacion.observaciones || null,
+          complicaciones: gestacion.observacionesParto || null,
+          detallesAdicionales: {
+            tipoParto: gestacion.tipoParto,
+            crias: gestacion.crias || [],
+            estado: gestacion.estado,
+            asistenciaVeterinaria: gestacion.asistenciaVeterinaria,
+            pesoCria: gestacion.pesoCria,
+            sexoCria: gestacion.sexoCria,
+            estadoCria: gestacion.estadoCria,
+            observacionesParto: gestacion.observacionesParto,
+            fechaActualizacion: gestacion.fechaActualizacion
+          }
         });
       }
 
@@ -110,7 +146,15 @@ export async function GET(
             titulo: 'Seguimiento de Gestación',
             descripcion: historial.observaciones,
             color: 'gray',
-            icono: '📋'
+            icono: '📋',
+            observaciones: historial.observaciones || null,
+            complicaciones: null,
+            detallesAdicionales: {
+              peso: historial.peso,
+              condicionCorporal: historial.condicionCorporal,
+              examenes: historial.examenes || [],
+              veterinario: historial.veterinario
+            }
           });
         });
       }
