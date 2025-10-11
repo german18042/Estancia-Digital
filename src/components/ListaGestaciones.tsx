@@ -85,6 +85,50 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
     const gestacionesRecalculadas = gestaciones.map(recalcularValoresGestacion);
     setGestacionesConCalculos(gestacionesRecalculadas);
   }, [gestaciones]);
+
+  // Actualizar automáticamente cada 24 horas para reflejar el paso del tiempo
+  useEffect(() => {
+    const actualizarDiariamente = () => {
+      const gestacionesRecalculadas = gestaciones.map(recalcularValoresGestacion);
+      setGestacionesConCalculos(gestacionesRecalculadas);
+    };
+
+    // Calcular milisegundos hasta la medianoche del próximo día
+    const ahora = new Date();
+    const medianoche = new Date(ahora);
+    medianoche.setDate(ahora.getDate() + 1);
+    medianoche.setHours(0, 0, 0, 0);
+    const tiempoHastaMedianoche = medianoche.getTime() - ahora.getTime();
+
+    // Configurar timeout para la primera actualización a medianoche
+    const timeoutInicial = setTimeout(() => {
+      actualizarDiariamente();
+      
+      // Luego configurar intervalo cada 24 horas
+      const intervalo = setInterval(actualizarDiariamente, 24 * 60 * 60 * 1000);
+      
+      return () => clearInterval(intervalo);
+    }, tiempoHastaMedianoche);
+
+    return () => clearTimeout(timeoutInicial);
+  }, [gestaciones]);
+
+  // Actualizar cuando el usuario regrese a la página (visibilitychange)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // La página se volvió visible, recalcular valores
+        const gestacionesRecalculadas = gestaciones.map(recalcularValoresGestacion);
+        setGestacionesConCalculos(gestacionesRecalculadas);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [gestaciones]);
   const [gestacionesFiltradas, setGestacionesFiltradas] = useState<Gestacion[]>([]);
 
   React.useEffect(() => {
@@ -124,10 +168,20 @@ const ListaGestaciones: React.FC<ListaGestacionesProps> = ({
   }, [filtro, filtroDiasRestantes, gestacionesConCalculos]);
 
   const calcularDiasRestantes = (gestacion: Gestacion) => {
-    // Usar directamente los días confirmados que se muestran en la tabla
+    // Usar exactamente los mismos días que se muestran en la tabla
     const diasMostrados = gestacion.diasGestacionConfirmados || gestacion.diasGestacionActual || 0;
     
-    // Calcular días restantes (283 días totales - días confirmados/mostrados)
+    // Si hay confirmación, calcular días actuales desde la fecha de confirmación
+    if (gestacion.fechaConfirmacion && gestacion.diasGestacionConfirmados) {
+      const hoy = new Date();
+      const fechaConfirmacion = new Date(gestacion.fechaConfirmacion);
+      const diasDesdeConfirmacion = Math.floor((hoy.getTime() - fechaConfirmacion.getTime()) / (1000 * 60 * 60 * 24));
+      const diasActuales = gestacion.diasGestacionConfirmados + diasDesdeConfirmacion;
+      const diasRestantes = 283 - Math.max(0, diasActuales);
+      return diasRestantes;
+    }
+    
+    // Si no hay confirmación, usar los días mostrados directamente
     const diasRestantes = 283 - diasMostrados;
     return diasRestantes;
   };

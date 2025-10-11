@@ -44,7 +44,8 @@ const RegistroVacasApp: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/vacas');
+      // Solicitar todas las vacas del usuario (sin límite)
+      const response = await fetch('/api/vacas?limit=1000');
       if (!response.ok) {
         throw new Error('Error al cargar las vacas');
       }
