@@ -135,6 +135,28 @@ const RegistroVacasApp: React.FC = () => {
     setVacaParaSalida(vaca);
   };
 
+  const handleCambiarLote = async (vacaId: string, nuevoLote: string) => {
+    try {
+      const response = await fetch(`/api/vacas/${vacaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lote: nuevoLote || null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cambiar lote');
+      }
+
+      setSuccessMessage(`Lote actualizado exitosamente`);
+      cargarVacas();
+    } catch (error) {
+      console.error('Error al cambiar lote:', error);
+      setError('Error al cambiar el lote');
+    }
+  };
+
   const handleConfirmarSalida = async (datos: {
     tipo: 'vendido' | 'fallecido';
     fecha: Date;
@@ -353,6 +375,7 @@ const RegistroVacasApp: React.FC = () => {
               onCambiarUbicacion={handleCambiarUbicacion}
               onVerDetalles={handleVerDetalles}
               onMarcarMuerte={handleMarcarMuerte}
+              onCambiarLote={handleCambiarLote}
               isLoading={isLoading}
             />
           </div>

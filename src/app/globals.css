@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Leaflet CSS - Se importan aquí para asegurar que se carguen correctamente */
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-draw/dist/leaflet.draw.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

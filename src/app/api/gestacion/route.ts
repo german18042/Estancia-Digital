@@ -3,6 +3,83 @@ import connectDB from '@/lib/mongodb';
 import Gestacion from '@/models/Gestacion';
 import { requireAuth } from '@/utils/authMiddleware';
 
+/**
+ * Calcula todos los valores de gestación basándose en la prioridad:
+ * 1. Fecha de confirmación + días confirmados (más preciso)
+ * 2. Fecha de servicio (fallback)
+ */
+function calcularDatosGestacion(params: {
+  fechaConfirmacion?: Date | string;
+  diasGestacionConfirmados?: number;
+  fechaServicio?: Date | string;
+}) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+  
+  let fechaServicioCalculada: Date;
+  let fechaProbableParto: Date;
+  let diasGestacionActual: number;
+  let trimestreActual: 1 | 2 | 3;
+
+  // PRIORIDAD 1: Usar confirmación veterinaria si existe
+  if (params.fechaConfirmacion && params.diasGestacionConfirmados) {
+    const fechaConf = new Date(params.fechaConfirmacion);
+    fechaConf.setHours(0, 0, 0, 0);
+    
+    // Calcular fecha de servicio restando los días confirmados
+    fechaServicioCalculada = new Date(fechaConf);
+    fechaServicioCalculada.setDate(fechaServicioCalculada.getDate() - params.diasGestacionConfirmados);
+    
+    // Fecha probable de parto: fecha de servicio + 283 días
+    fechaProbableParto = new Date(fechaServicioCalculada);
+    fechaProbableParto.setDate(fechaProbableParto.getDate() + 283);
+    
+    // Días actuales: días confirmados + días transcurridos desde confirmación
+    const diasDesdeConfirmacion = Math.floor(
+      (hoy.getTime() - fechaConf.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    diasGestacionActual = Math.max(0, params.diasGestacionConfirmados + diasDesdeConfirmacion);
+  }
+  // PRIORIDAD 2: Usar fecha de servicio si no hay confirmación
+  else if (params.fechaServicio) {
+    fechaServicioCalculada = new Date(params.fechaServicio);
+    fechaServicioCalculada.setHours(0, 0, 0, 0);
+    
+    // Fecha probable de parto: fecha de servicio + 283 días
+    fechaProbableParto = new Date(fechaServicioCalculada);
+    fechaProbableParto.setDate(fechaProbableParto.getDate() + 283);
+    
+    // Días actuales: días desde la fecha de servicio
+    diasGestacionActual = Math.max(
+      0,
+      Math.floor((hoy.getTime() - fechaServicioCalculada.getTime()) / (1000 * 60 * 60 * 24))
+    );
+  }
+  // FALLBACK: Usar fecha actual (caso extremo)
+  else {
+    fechaServicioCalculada = new Date(hoy);
+    fechaProbableParto = new Date(hoy);
+    fechaProbableParto.setDate(fechaProbableParto.getDate() + 283);
+    diasGestacionActual = 0;
+  }
+
+  // Calcular trimestre basado en días actuales
+  if (diasGestacionActual <= 94) {
+    trimestreActual = 1; // Primer trimestre: 0-94 días
+  } else if (diasGestacionActual <= 189) {
+    trimestreActual = 2; // Segundo trimestre: 95-189 días
+  } else {
+    trimestreActual = 3; // Tercer trimestre: 190-283 días
+  }
+
+  return {
+    fechaServicio: fechaServicioCalculada,
+    fechaProbableParto,
+    diasGestacionActual,
+    trimestreActual
+  };
+}
+
 // Función para actualizar automáticamente los estados de las gestaciones
 async function actualizarEstadosGestaciones(userId: string) {
   try {
@@ -13,18 +90,21 @@ async function actualizarEstadosGestaciones(userId: string) {
     });
 
     const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
     const actualizaciones = [];
 
     for (const gestacion of gestacionesActivas) {
       const fechaParto = new Date(gestacion.fechaProbableParto);
+      fechaParto.setHours(0, 0, 0, 0);
       const diasRestantes = Math.ceil((fechaParto.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Si pasó la fecha de parto y no se ha registrado el parto, marcar como vencida
+      // Si pasó la fecha de parto y no se ha registrado el parto, mantener en gestación
+      // (se mostrará como vencida en el frontend)
       if (diasRestantes < -7) {
         // Más de 7 días después de la fecha probable sin registrar parto
         actualizaciones.push(
           Gestacion.findByIdAndUpdate(gestacion._id, {
-            estado: 'en_gestacion', // Mantener en gestación pero se mostrará como vencida
+            estado: 'en_gestacion',
             fechaActualizacion: new Date()
           })
         );
@@ -140,58 +220,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calcular fecha de servicio y fecha probable de parto
-    let fechaServicioCalculada: Date | undefined;
-    let fechaProbableParto: Date;
-    let diasGestacionActual: number;
-    let trimestreActual: number;
-    const hoy = new Date();
-    
-    // Prioridad 1: Si hay días confirmados, usar esos como base
-    if (body.fechaConfirmacion && body.diasGestacionConfirmados) {
-      const fechaConfirmacion = new Date(body.fechaConfirmacion);
-      // Calcular fecha de servicio estimada restando los días confirmados
-      fechaServicioCalculada = new Date(fechaConfirmacion.getTime() - (body.diasGestacionConfirmados * 24 * 60 * 60 * 1000));
-      fechaProbableParto = new Date(fechaServicioCalculada.getTime() + (283 * 24 * 60 * 60 * 1000));
-      
-      // Calcular días actuales: días confirmados + días transcurridos desde la confirmación
-      const diasDesdeConfirmacion = Math.floor((hoy.getTime() - fechaConfirmacion.getTime()) / (1000 * 60 * 60 * 24));
-      diasGestacionActual = body.diasGestacionConfirmados + diasDesdeConfirmacion;
-      diasGestacionActual = Math.max(0, diasGestacionActual);
-    } 
-    // Prioridad 2: Si hay fecha de servicio pero no confirmación, usar fecha de servicio
-    else if (body.fechaServicio) {
-      fechaServicioCalculada = new Date(body.fechaServicio);
-      fechaProbableParto = new Date(fechaServicioCalculada.getTime() + (283 * 24 * 60 * 60 * 1000));
-      
-      // Calcular días actuales desde la fecha de servicio
-      diasGestacionActual = Math.floor((hoy.getTime() - fechaServicioCalculada.getTime()) / (1000 * 60 * 60 * 24));
-      diasGestacionActual = Math.max(0, diasGestacionActual);
-    } 
-    // Si no hay ninguno de los dos
-    else {
-      fechaServicioCalculada = new Date();
-      fechaProbableParto = new Date(Date.now() + (283 * 24 * 60 * 60 * 1000));
-      diasGestacionActual = 0;
-    }
-    
-    // Calcular trimestre actual
-    if (diasGestacionActual <= 94) {
-      trimestreActual = 1; // Primer trimestre: 0-94 días
-    } else if (diasGestacionActual <= 189) {
-      trimestreActual = 2; // Segundo trimestre: 95-189 días
-    } else {
-      trimestreActual = 3; // Tercer trimestre: 190+ días
-    }
+    // Calcular todos los datos de gestación usando la función centralizada
+    const datosCalculados = calcularDatosGestacion({
+      fechaConfirmacion: body.fechaConfirmacion,
+      diasGestacionConfirmados: body.diasGestacionConfirmados,
+      fechaServicio: body.fechaServicio
+    });
 
-    // Crear nueva gestación
+    // Crear nueva gestación con los datos calculados
     const nuevaGestacion = new Gestacion({
       ...body,
       userId: user.userId, // Asociar al usuario autenticado
-      fechaServicio: fechaServicioCalculada, // Usar la fecha calculada
-      fechaProbableParto,
-      diasGestacionActual,
-      trimestreActual,
+      fechaServicio: datosCalculados.fechaServicio,
+      fechaProbableParto: datosCalculados.fechaProbableParto,
+      diasGestacionActual: datosCalculados.diasGestacionActual,
+      trimestreActual: datosCalculados.trimestreActual,
       fechaRegistro: new Date(),
       fechaActualizacion: new Date(),
       activa: true,

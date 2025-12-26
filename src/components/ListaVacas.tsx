@@ -14,6 +14,7 @@ interface Vaca {
   alturaCruz: number;
   estadoReproductivo: string;
   ubicacionActual: string;
+  lote?: string;
   condicionCorporal: number;
   produccionLecheraDiaria?: number;
   activa: boolean;
@@ -25,6 +26,7 @@ interface ListaVacasProps {
   onCambiarUbicacion: (vaca: Vaca) => void;
   onVerDetalles: (vaca: Vaca) => void;
   onMarcarMuerte: (vaca: Vaca) => void;
+  onCambiarLote?: (vacaId: string, nuevoLote: string) => void;
   isLoading?: boolean;
 }
 
@@ -34,10 +36,28 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
   onCambiarUbicacion,
   onVerDetalles,
   onMarcarMuerte,
+  onCambiarLote,
   isLoading = false
 }) => {
   const [filtro, setFiltro] = useState('');
   const [vacasFiltradas, setVacasFiltradas] = useState<Vaca[]>(vacas);
+  const [lotesDisponibles, setLotesDisponibles] = useState<Array<{ _id: string; nombre: string }>>([]);
+
+  // Cargar lotes disponibles
+  useEffect(() => {
+    const cargarLotes = async () => {
+      try {
+        const response = await fetch('/api/lotes?activo=true');
+        if (response.ok) {
+          const data = await response.json();
+          setLotesDisponibles(data.lotes || []);
+        }
+      } catch (error) {
+        console.error('Error al cargar lotes:', error);
+      }
+    };
+    cargarLotes();
+  }, []);
 
   useEffect(() => {
     if (filtro === '') {
@@ -146,7 +166,7 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ubicación
+                Lote/Grupo
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
@@ -198,7 +218,22 @@ const ListaVacas: React.FC<ListaVacasProps> = ({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{vaca.ubicacionActual}</div>
+                    {onCambiarLote ? (
+                      <select
+                        value={vaca.lote || ''}
+                        onChange={(e) => onCambiarLote(vaca._id, e.target.value)}
+                        className="text-sm px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      >
+                        <option value="">Sin lote</option>
+                        {lotesDisponibles.map((lote) => (
+                          <option key={lote._id} value={lote.nombre}>
+                            {lote.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-sm text-gray-900">{vaca.lote || 'Sin lote'}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex flex-col space-y-2">

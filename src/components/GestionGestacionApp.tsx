@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import FormularioGestacion from './FormularioGestacion';
+import FormularioServicio from './FormularioServicio';
+import FormularioConfirmacion from './FormularioConfirmacion';
 import ListaGestaciones from './ListaGestaciones';
 import ModalRegistroParto from './ModalRegistroParto';
 
@@ -55,7 +57,10 @@ const GestionGestacionApp: React.FC = () => {
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarFormularioServicio, setMostrarFormularioServicio] = useState(false);
+  const [mostrarFormularioConfirmacion, setMostrarFormularioConfirmacion] = useState(false);
   const [gestacionEditando, setGestacionEditando] = useState<Gestacion | null>(null);
+  const [gestacionParaConfirmar, setGestacionParaConfirmar] = useState<Gestacion | null>(null);
   const [gestacionParaParto, setGestacionParaParto] = useState<Gestacion | null>(null);
   const [errorParto, setErrorParto] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -201,6 +206,105 @@ const GestionGestacionApp: React.FC = () => {
   const handleCancelarFormulario = () => {
     setMostrarFormulario(false);
     setGestacionEditando(null);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  // Handler para registrar nuevo servicio
+  const handleNuevoServicio = () => {
+    setMostrarFormularioServicio(true);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleSubmitServicio = async (datosServicio: any) => {
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch('/api/gestacion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosServicio),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al registrar el servicio');
+      }
+
+      await response.json();
+      setSuccessMessage('Servicio registrado exitosamente');
+      setMostrarFormularioServicio(false);
+      
+      // Recargar todos los datos
+      await cargarDatos();
+      
+    } catch (error) {
+      console.error('Error al registrar servicio:', error);
+      setError(error instanceof Error ? error.message : 'Error al registrar el servicio');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelarServicio = () => {
+    setMostrarFormularioServicio(false);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  // Handler para confirmar gestación
+  const handleConfirmarGestacion = (gestacion: Gestacion) => {
+    setGestacionParaConfirmar(gestacion);
+    setMostrarFormularioConfirmacion(true);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleSubmitConfirmacion = async (datosConfirmacion: any) => {
+    if (!gestacionParaConfirmar) return;
+
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch(`/api/gestacion/${gestacionParaConfirmar._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosConfirmacion),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al confirmar la gestación');
+      }
+
+      await response.json();
+      setSuccessMessage('Gestación confirmada exitosamente');
+      setMostrarFormularioConfirmacion(false);
+      setGestacionParaConfirmar(null);
+      
+      // Recargar todos los datos
+      await cargarDatos();
+      
+    } catch (error) {
+      console.error('Error al confirmar gestación:', error);
+      setError(error instanceof Error ? error.message : 'Error al confirmar la gestación');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelarConfirmacion = () => {
+    setMostrarFormularioConfirmacion(false);
+    setGestacionParaConfirmar(null);
     setError(null);
     setSuccessMessage(null);
   };
@@ -408,7 +512,7 @@ const GestionGestacionApp: React.FC = () => {
         )}
 
         {/* Estadísticas */}
-        {estadisticas && !mostrarFormulario && (
+        {estadisticas && !mostrarFormulario && !mostrarFormularioServicio && !mostrarFormularioConfirmacion && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
               <div className="flex items-center">
@@ -469,7 +573,7 @@ const GestionGestacionApp: React.FC = () => {
         )}
 
         {/* Próximos Partos */}
-        {estadisticas?.proximosPartos && estadisticas.proximosPartos.length > 0 && !mostrarFormulario && (
+        {estadisticas?.proximosPartos && estadisticas.proximosPartos.length > 0 && !mostrarFormulario && !mostrarFormularioServicio && !mostrarFormularioConfirmacion && (
           <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Próximos Partos</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -497,7 +601,24 @@ const GestionGestacionApp: React.FC = () => {
           </div>
         )}
 
-        {mostrarFormulario ? (
+        {/* Formulario de Servicio */}
+        {mostrarFormularioServicio ? (
+          <FormularioServicio
+            onSubmit={handleSubmitServicio}
+            isLoading={isLoading}
+            vacasDisponibles={vacas}
+            onCancelar={handleCancelarServicio}
+          />
+        ) : mostrarFormularioConfirmacion && gestacionParaConfirmar ? (
+          /* Formulario de Confirmación */
+          <FormularioConfirmacion
+            gestacion={gestacionParaConfirmar}
+            onSubmit={handleSubmitConfirmacion}
+            isLoading={isLoading}
+            onCancelar={handleCancelarConfirmacion}
+          />
+        ) : mostrarFormulario ? (
+          /* Formulario completo (para editar) */
           <FormularioGestacion
             onSubmit={handleSubmitFormulario}
             isLoading={isLoading}
@@ -505,17 +626,32 @@ const GestionGestacionApp: React.FC = () => {
             vacasDisponibles={vacas}
           />
         ) : (
+          /* Lista de gestaciones */
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold text-gray-800">
                 Registro de Gestaciones
               </h2>
-              <button
-                onClick={handleNuevaGestacion}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                + Nueva Gestación
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleNuevoServicio}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+                >
+                  <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Registrar Servicio
+                </button>
+                <button
+                  onClick={handleNuevaGestacion}
+                  className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
+                >
+                  <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Registro Completo
+                </button>
+              </div>
             </div>
 
             <ListaGestaciones
@@ -523,6 +659,7 @@ const GestionGestacionApp: React.FC = () => {
               onEditar={handleEditarGestacion}
               onEliminar={handleEliminarGestacion}
               onRegistrarParto={handleRegistrarParto}
+              onConfirmar={handleConfirmarGestacion}
               isLoading={isLoading}
             />
           </div>

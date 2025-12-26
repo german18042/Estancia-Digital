@@ -66,9 +66,44 @@ export async function PUT(
       }
     }
 
+    console.log('📥 Body recibido para actualización:', JSON.stringify(body, null, 2));
+    console.log('🎨 Color recibido en body.color:', body.color);
+    
+    // Preparar datos de actualización - NO usar spread para evitar sobrescribir campos no enviados
+    const datosActualizacion: any = {
+      fechaActualizacion: new Date()
+    };
+    
+    // Copiar solo los campos que vienen en el body
+    if (body.nombre !== undefined) datosActualizacion.nombre = body.nombre;
+    if (body.tipo !== undefined) datosActualizacion.tipo = body.tipo;
+    if (body.capacidad !== undefined) datosActualizacion.capacidad = body.capacidad;
+    if (body.area !== undefined) datosActualizacion.area = body.area;
+    if (body.descripcion !== undefined) datosActualizacion.descripcion = body.descripcion;
+    if (body.tipoPasto !== undefined) datosActualizacion.tipoPasto = body.tipoPasto;
+    if (body.sistemaRiego !== undefined) datosActualizacion.sistemaRiego = body.sistemaRiego;
+    if (body.estado !== undefined) datosActualizacion.estado = body.estado;
+    if (body.activa !== undefined) datosActualizacion.activa = body.activa;
+    if (body.geometria !== undefined) datosActualizacion.geometria = body.geometria;
+    if (body.coordenadas !== undefined) datosActualizacion.coordenadas = body.coordenadas;
+    if (body.caracteristicas !== undefined) datosActualizacion.caracteristicas = body.caracteristicas;
+    
+    // SIEMPRE actualizar el color si viene en el body, o usar el existente/por defecto
+    if (body.color !== undefined && body.color !== null && body.color !== '') {
+      datosActualizacion.color = body.color;
+      console.log('🎨 Color del body será guardado:', body.color);
+    } else {
+      // Si no viene color, obtener el existente o usar por defecto     
+      const ubicacionActual = await Ubicacion.findOne({ _id: id, userId: user.userId }).select('color').lean() as { color?: string } | null;                                         
+      datosActualizacion.color = ubicacionActual?.color || '#ffff00';
+      console.log('🎨 Color no en body, usando existente/por defecto:', datosActualizacion.color);
+    }
+    
+    console.log('🎨 Color final a guardar en BD:', datosActualizacion.color);
+    
     const ubicacionActualizada = await Ubicacion.findOneAndUpdate(
       { _id: id, userId: user.userId },
-      { ...body, fechaActualizacion: new Date() },
+      datosActualizacion,
       { new: true, runValidators: true }
     );
 

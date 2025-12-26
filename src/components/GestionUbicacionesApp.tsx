@@ -2,8 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import FormularioUbicacion from './FormularioUbicacion';
 import ListaUbicaciones from './ListaUbicaciones';
+
+// Importar el mapa dinámicamente para evitar problemas SSR
+const MapaUbicacion = dynamic(() => import('./MapaUbicacion'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] bg-gray-200 flex items-center justify-center rounded-lg">
+      <p className="text-gray-600">Cargando mapa...</p>
+    </div>
+  )
+});
 
 interface Ubicacion {
   _id: string;
@@ -11,6 +22,9 @@ interface Ubicacion {
   tipo: string;
   capacidad?: number;
   area?: number;
+  geometria?: any;
+  tipoPasto?: string;
+  sistemaRiego?: string;
   descripcion?: string;
   caracteristicas?: string[];
   estado: string;
@@ -20,9 +34,38 @@ const GestionUbicacionesApp: React.FC = () => {
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarMapa, setMostrarMapa] = useState(true); // Mostrar mapa por defecto
   const [ubicacionEditando, setUbicacionEditando] = useState<Ubicacion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Coordenadas del centro del mapa - desde ubicación de la finca o valores por defecto
+  const [mapCenter, setMapCenter] = useState<[number, number]>(() => {
+    if (typeof window !== 'undefined') {
+      const fincaLat = localStorage.getItem('fincaLat');
+      const fincaLng = localStorage.getItem('fincaLng');
+      if (fincaLat && fincaLng) {
+        return [parseFloat(fincaLat), parseFloat(fincaLng)];
+      }
+      // Fallback a coordenadas guardadas anteriormente
+      const savedLat = localStorage.getItem('mapCenterLat');
+      const savedLng = localStorage.getItem('mapCenterLng');
+      if (savedLat && savedLng) {
+        return [parseFloat(savedLat), parseFloat(savedLng)];
+      }
+    }
+    return [-34.6037, -58.3816]; // Buenos Aires por defecto
+  });
+  
+  const [mapZoom, setMapZoom] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const savedZoom = localStorage.getItem('mapZoom');
+      if (savedZoom) {
+        return parseInt(savedZoom);
+      }
+    }
+    return 16; // Zoom más cercano para ver la casa principal
+  });
 
   useEffect(() => {
     cargarUbicaciones();
@@ -206,8 +249,17 @@ const GestionUbicacionesApp: React.FC = () => {
 
         {/* Contenido principal */}
         {!mostrarFormulario ? (
-          <div>
-            <div className="mb-4 flex justify-end">
+          <div className="space-y-6">
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMostrarMapa(!mostrarMapa)}
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm sm:text-base"
+                >
+                  {mostrarMapa ? '📋 Ver Lista' : '🗺️ Ver Mapa'}
+                </button>
+              </div>
               <button
                 onClick={handleNuevaUbicacion}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm sm:text-base"
@@ -216,12 +268,48 @@ const GestionUbicacionesApp: React.FC = () => {
               </button>
             </div>
 
-            <ListaUbicaciones
-              ubicaciones={ubicaciones}
-              onEditar={handleEditarUbicacion}
-              onEliminar={handleEliminarUbicacion}
-              isLoading={isLoading}
-            />
+            {/* Vista de mapa o lista */}
+            {mostrarMapa ? (
+              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+                  Mapa de Potreros y Ubicaciones
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Visualiza todos tus potreros delimitados en el mapa satelital. Haz clic en cada polígono para ver más información.
+                </p>
+                
+                <MapaUbicacion
+                  geometriasExistentes={ubicaciones.filter(u => u.geometria)}
+                  editable={false}
+                  height="600px"
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  showFincaMarker={true}
+                  onPolygonClick={(geo) => {
+                    const ubicacion = ubicaciones.find(u => u._id === geo._id);
+                    if (ubicacion) {
+                      handleEditarUbicacion(ubicacion);
+                    }
+                  }}
+                  onFincaLocationSet={(lat, lng) => {
+                    setMapCenter([lat, lng]);
+                    setMapZoom(16);
+                  }}
+                />
+                {ubicaciones.filter(u => u.geometria).length === 0 && (
+                  <p className="mt-4 text-center text-gray-500">
+                    No hay ubicaciones con polígonos delimitados. Crea una nueva ubicación y dibuja su área en el mapa.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <ListaUbicaciones
+                ubicaciones={ubicaciones}
+                onEditar={handleEditarUbicacion}
+                onEliminar={handleEliminarUbicacion}
+                isLoading={isLoading}
+              />
+            )}
           </div>
         ) : (
           <div>
@@ -229,6 +317,7 @@ const GestionUbicacionesApp: React.FC = () => {
               onSubmit={handleSubmitFormulario}
               isLoading={isLoading}
               datosIniciales={ubicacionEditando || {}}
+              ubicacionesExistentes={ubicaciones}
             />
             <div className="mt-6 flex justify-end">
               <button

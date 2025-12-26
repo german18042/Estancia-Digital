@@ -65,6 +65,7 @@ export interface IVaca extends Document {
   ubicacionActual: string;
   historialMovimientos: IHistorialMovimiento[];
   alimentacion?: string;
+  lote?: string; // Lote o grupo al que pertenece
 
   // Información Genética
   registroGenealogico?: string;
@@ -229,6 +230,11 @@ const VacaSchema = new Schema<IVaca>({
     observaciones: String
   }],
   alimentacion: String,
+  lote: {
+    type: String,
+    trim: true,
+    index: true
+  },
 
   // Información Genética
   registroGenealogico: String,

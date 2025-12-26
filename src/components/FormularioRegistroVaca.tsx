@@ -24,14 +24,33 @@ const FormularioRegistroVaca: React.FC<FormularioRegistroVacaProps> = ({
   const [madreInput, setMadreInput] = useState(datosIniciales.madre || '');
   const [mostrarPadres, setMostrarPadres] = useState(false);
   const [mostrarMadres, setMostrarMadres] = useState(false);
+  const [lotesDisponibles, setLotesDisponibles] = useState<Array<{ _id: string; nombre: string; color: string }>>([]);
   const padreRef = useRef<HTMLDivElement>(null);
   const madreRef = useRef<HTMLDivElement>(null);
+
+  // Cargar lotes disponibles
+  useEffect(() => {
+    const cargarLotes = async () => {
+      try {
+        const response = await fetch('/api/lotes?activo=true');
+        if (response.ok) {
+          const data = await response.json();
+          setLotesDisponibles(data.lotes || []);
+        }
+      } catch (error) {
+        console.error('Error al cargar lotes:', error);
+      }
+    };
+    cargarLotes();
+  }, []);
 
   const [formData, setFormData] = useState({
     // Identificación General
     numeroIdentificacion: datosIniciales.numeroIdentificacion || '',
     nombre: datosIniciales.nombre || '',
-    fechaNacimiento: datosIniciales.fechaNacimiento || '',
+    fechaNacimiento: datosIniciales.fechaNacimiento 
+      ? new Date(datosIniciales.fechaNacimiento).toISOString().split('T')[0]
+      : '',
     sexo: datosIniciales.sexo || '',
 
     // Características Físicas
@@ -58,6 +77,7 @@ const FormularioRegistroVaca: React.FC<FormularioRegistroVacaProps> = ({
     // Ubicación y Manejo
     ubicacionActual: datosIniciales.ubicacionActual || '',
     alimentacion: datosIniciales.alimentacion || '',
+    lote: datosIniciales.lote || '',
 
     // Información Genética
     registroGenealogico: datosIniciales.registroGenealogico || '',
@@ -509,6 +529,31 @@ const FormularioRegistroVaca: React.FC<FormularioRegistroVacaProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 placeholder="Ej: Potrero A, Lote 1, Establo 3"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lote o Grupo
+              </label>
+              <select
+                name="lote"
+                value={formData.lote}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              >
+                <option value="">Sin lote</option>
+                {lotesDisponibles.map((lote) => (
+                  <option key={lote._id} value={lote.nombre}>
+                    {lote.nombre}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {lotesDisponibles.length > 0 ? (
+                  <>Asigna esta vaca a un lote. <a href="/configuracion" className="text-blue-600 hover:text-blue-800">Gestionar lotes →</a></>
+                ) : (
+                  <>No hay lotes configurados. <a href="/configuracion" className="text-blue-600 hover:text-blue-800">Crear lotes →</a></>
+                )}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
